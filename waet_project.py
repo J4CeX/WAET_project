@@ -34,7 +34,7 @@ class Tutel():
         else:
             self.draw = True
 
-    def rotate_in_place(self, target_angle, max_angular_speed=10, tolerance=0.01):
+    def rotate_in_place(self, target_angle, max_angular_speed=2.0, tolerance=0.001):
         """
         Obraca żółwia w miejscu o zadany kąt (w radianach) z dokładnością do tolerance.
         :param target_angle: kąt do obrócenia (dodatni = w lewo, ujemny = w prawo)
@@ -42,38 +42,64 @@ class Tutel():
         :param tolerance: dokładność zatrzymania (rad)
         """
         start_angle = self.turtle_api.getPose('turtle1').theta
-        target_angle_normalized = (start_angle + target_angle) % (2 * math.pi)  # Normalizacja docelowego kąta
-        remaining_angle = target_angle
+
+        def angle_difference(current, start):
+            # Zastosowanie atan2 do obliczania różnicy kątów
+            return math.atan2(math.sin(current - start), math.cos(current - start))
 
         cmd = Twist()
         rate = rospy.Rate(10)  # 10 Hz
 
-        while abs(remaining_angle) > tolerance and not rospy.is_shutdown():
+        while not rospy.is_shutdown():
             current_angle = self.turtle_api.getPose('turtle1').theta
+            rotated_angle = angle_difference(current_angle, start_angle)
+            remaining_angle = target_angle - rotated_angle
 
-            # Oblicz pozostały kąt z uwzględnieniem przekroczenia 2π
-            angle_diff = (target_angle_normalized - current_angle) % (2 * math.pi)
-            if angle_diff > math.pi:
-                angle_diff -= 2 * math.pi
-            remaining_angle = angle_diff
+            # Sprawdzenie, czy różnica kąta przekracza 180 stopni
+            if abs(remaining_angle) > math.pi:
+                remaining_angle -= math.copysign(2 * math.pi, remaining_angle)  # Koryguj kąt w przeciwną stronę
 
-            # Trójkątny profil prędkości
-            if abs(remaining_angle) > abs(target_angle)/2:
-                angular_speed = max_angular_speed
-            else:
-                angular_speed = max_angular_speed * (2 * abs(remaining_angle) / abs(target_angle))
+            if abs(remaining_angle) < tolerance:
+                break
 
-            # Ustaw prędkość (z zachowaniem kierunku)
-            cmd.angular.z = math.copysign(min(angular_speed, max_angular_speed), remaining_angle)
+            # Kontrola prędkości kątowej: im bliżej docelowego kąta, tym wolniej
+            angular_speed = min(max_angular_speed, max(0.2, abs(remaining_angle) * 2.0))
+
+            # Zapobieganie nadkręceniu przy zbliżaniu się do końca obrotu
+            if abs(remaining_angle) < 0.1:
+                angular_speed = max(0.05, angular_speed * 0.5)  # Slow down closer to target
+
+            # Ustaw prędkość kątową
+            cmd.angular.z = math.copysign(angular_speed, remaining_angle)
             cmd.linear.x = 0.0
             self.turtle_api.setVel('turtle1', cmd)
 
             rate.sleep()
 
-        # Zatrzymaj żółwia i wymuś dokładny kąt
+        # Zatrzymaj ruch
         self.turtle_api.setVel('turtle1', Twist())
-        current_angle = self.turtle_api.getPose('turtle1').theta
-        print(f"Zakończono obrót. Docelowy kąt: {math.degrees(target_angle_normalized):.1f}°, Aktualny: {math.degrees(current_angle):.1f}°")
+
+        # Sprawdzamy kąt po zakończeniu obrotu
+        final_angle = self.turtle_api.getPose('turtle1').theta
+        rotated_angle = angle_difference(final_angle, start_angle)
+
+        # Korekta w przypadku niewielkiej różnicy kąta
+        if abs(rotated_angle - target_angle) > 0.0005:  # Tolerancja dla finalnej korekty
+            # Obliczamy minimalną korektę
+            correction = target_angle - rotated_angle
+            print(f"Koryguję kąt o {math.degrees(correction):.2f}°")
+
+            # Minimalna korekta w lewo lub w prawo
+            cmd.angular.z = math.copysign(0.01, correction)  # Minimalna prędkość kątowa
+            self.turtle_api.setVel('turtle1', cmd)
+            rospy.sleep(0.1)  # Krótkie oczekiwanie, by wykonać korektę
+
+        # Zatrzymaj ruch po korekcie
+        self.turtle_api.setVel('turtle1', Twist())
+
+        final_angle = self.turtle_api.getPose('turtle1').theta
+        print(f"Zakończono obrót. Docelowy obrót: {math.degrees(target_angle):.1f}°, Faktyczny obrót: {math.degrees(angle_difference(final_angle, start_angle)):.1f}°")
+
 
     def move_forward(self, distance, max_speed=10):
         total_time = 2 * distance / max_speed
@@ -111,14 +137,14 @@ class Tutel():
 
         self.turtle_api.setVel('turtle1', Twist()) # zatrzymanie żółwia
 
-    def draw_quarter_arc(self, radius, angle, direction, max_speed=10):
+    def draw_arc(self, radius, angle, direction, max_speed=10):
         """
         Rysuje łuk 90 stopni o zadanym promieniu
         :param radius: promień łuku (w metrach)
         :param direction: 'right' (w prawo) lub 'left' (w lewo)
         :param max_speed: maksymalna prędkość liniowa (m/s)
         """
-        arc_length = angle * radius  # Długość łuku dla 90 stopni
+        arc_length = angle * radius # Długość łuku dla 180 stopni
         total_time = 2 * arc_length / max_speed  # Czas ruchu (profil trójkątny)
 
         cmd = Twist()
@@ -161,9 +187,9 @@ class Tutel():
         self.setDraw(True)
         self.rotate_in_place(math.pi / 2, 10)
         self.move_forward(3, 10)
-        self.draw_quarter_arc(3.5, math.pi, 'right', 10)
+        self.draw_arc(3.5, math.pi, 'right', 10)
         self.move_forward(3, 10)
-        self.draw_quarter_arc(3.5, math.pi, 'right', 10)
+        self.draw_arc(3.5, math.pi, 'right', 10)
 
     def draw_T(self):
         self.setDraw(True)
@@ -186,7 +212,7 @@ class Tutel():
         self.setDraw(True)
         self.rotate_in_place(math.pi, 10)
         self.move_forward(10, 10)
-        self.draw_quarter_arc(4, 1.1, 'right', 10)
+        self.draw_arc(4, 1.1, 'right', 10)
 
     def draw_0Ty(self):
         self.draw_0()
