@@ -24,7 +24,7 @@ class Tutel():
         self.turtle_api = turtle_api
         self.draw = False
 
-    def setDraw(self, draw: bool):
+    def set_draw(self, draw: bool):
         if draw == False:
             self.draw = False
             pen_req = turtlesim.srv.SetPenRequest(
@@ -34,7 +34,7 @@ class Tutel():
         else:
             self.draw = True
 
-    def rotate_in_place(self, target_angle, max_angular_speed=2.0, tolerance=0.001):
+    def rotate_in_place(self, target_angle, max_angular_speed=10.0, tolerance=0.001):
         """
         Obraca żółwia w miejscu o zadany kąt (w radianach) z dokładnością do tolerance.
         :param target_angle: kąt do obrócenia (dodatni = w lewo, ujemny = w prawo)
@@ -139,13 +139,16 @@ class Tutel():
 
     def draw_arc(self, radius, angle, direction, max_speed=10):
         """
-        Rysuje łuk 90 stopni o zadanym promieniu
         :param radius: promień łuku (w metrach)
+        :param angle: kąt łuku (w radianach)
         :param direction: 'right' (w prawo) lub 'left' (w lewo)
         :param max_speed: maksymalna prędkość liniowa (m/s)
         """
-        arc_length = angle * radius # Długość łuku dla 180 stopni
-        total_time = 2 * arc_length / max_speed  # Czas ruchu (profil trójkątny)
+        # Długość łuku
+        arc_length = abs(angle) * radius  # Upewniamy się, że kąt jest dodatni
+
+        # Czas przejazdu łuku (jeśli łuk jest pełny, to czas jest proporcjonalny do długości łuku)
+        total_time = 2 * arc_length / max_speed  # Całkowity czas na pokonanie łuku
 
         cmd = Twist()
         start_time = rospy.Time.now().to_sec()
@@ -155,17 +158,19 @@ class Tutel():
             if current_time > total_time:
                 break
 
-            # Trójkątny profil prędkości
-            if current_time < total_time/2:
+            # Trójkątny profil prędkości (od zera do max i z powrotem)
+            if current_time < total_time / 2:
                 speed = max_speed * (2 * current_time / total_time)
             else:
                 speed = max_speed * (2 - 2 * current_time / total_time)
 
             # Ustaw prędkość liniową i kątową
-            cmd.linear.x = speed
-            cmd.angular.z = -speed / radius if direction == 'right' else speed / radius
+            angular_speed = -speed / radius if direction == 'right' else speed / radius
 
-            # Zmiana koloru pisaka
+            cmd.linear.x = speed
+            cmd.angular.z = angular_speed
+
+            # Zmiana koloru pisaka (jeśli żółw rysuje)
             ratio = speed / max_speed
             if self.draw:
                 pen_req = turtlesim.srv.SetPenRequest(
@@ -178,56 +183,75 @@ class Tutel():
                 self.turtle_api.setPen('turtle1', pen_req)
 
             self.turtle_api.setVel('turtle1', cmd)
-            rospy.sleep(0.1)
+
+            # Skrócenie czasu oczekiwania na mniejszych promieniach
+            if radius < 1:
+                rospy.sleep(0.05)
+            else:
+                rospy.sleep(0.1)
 
         # Zatrzymaj żółwia
         self.turtle_api.setVel('turtle1', Twist())
 
+
+
     def draw_0(self):
-        self.setDraw(True)
-        self.rotate_in_place(math.pi / 2, 10)
+        self.set_draw(True)
+        self.rotate_in_place(-math.pi / 2)
         self.move_forward(3, 10)
-        self.draw_arc(3.5, math.pi, 'right', 10)
+        self.draw_arc(3.5, math.pi, 'right')
+        self.rotate_in_place(-0.017)
         self.move_forward(3, 10)
-        self.draw_arc(3.5, math.pi, 'right', 10)
+        self.draw_arc(3.5, math.pi, 'right')
 
     def draw_T(self):
-        self.setDraw(True)
-        self.rotate_in_place(math.pi / 2, 10)
-        self.move_forward(10, 10)
-        self.setDraw(False)
-        self.rotate_in_place(math.pi / 2, 10)
-        self.move_forward(3.5, 10)
-        self.setDraw(True)
-        self.rotate_in_place(math.pi, 10)
-        self.move_forward(7, 10)
+        self.set_draw(True)
+        self.draw_arc(1.5, math.pi, 'right')
+        self.rotate_in_place(-0.017)
+        self.move_forward(5.5)
+        self.set_draw(False)
+        self.rotate_in_place(math.pi)
+        self.move_forward(3.5)
+        self.rotate_in_place(math.pi / 2)
+        self.set_draw(True)
+        self.move_forward(9)
+        self.draw_arc(1, math.pi, 'right')
+        self.rotate_in_place(-0.017)
 
     def draw_y(self):
-        self.setDraw(True)
-        self.rotate_in_place(0.52 , 10)
-        self.move_forward(7, 10)
-        self.rotate_in_place(2 * math.pi / 3, 10)
-        self.setDraw(False)
-        self.move_forward(7, 10)
-        self.setDraw(True)
-        self.rotate_in_place(math.pi, 10)
-        self.move_forward(10, 10)
-        self.draw_arc(4, 1.1, 'right', 10)
+        self.set_draw(True)
+        self.draw_arc(3.5, math.pi, 'left')
+        self.rotate_in_place(-0.017)
+        self.move_forward(6.5)
+        self.set_draw(False)
+        self.rotate_in_place(math.pi)
+        self.move_forward(2)
+        self.set_draw(True)
+        self.draw_arc(3.5, math.pi, 'right')
+        self.move_forward(2)
 
     def draw_0Ty(self):
         self.draw_0()
-        self.setDraw(False)
-        self.rotate_in_place(math.pi, 10)
-        self.move_forward(3.5, 10)
-        self.rotate_in_place(math.pi / 2, 10)
-        self.move_forward(11.5, 10)
+
+        self.set_draw(False)
+        self.rotate_in_place(math.pi / 2)
+        self.move_forward(2.5)
+        self.rotate_in_place(math.pi / 2)
+        self.move_forward(1)
+        self.rotate_in_place(math.pi / 2)
+
         self.draw_T()
-        self.setDraw(False)
-        self.move_forward(1, 10)
-        self.rotate_in_place(-math.pi / 2, 10)
-        self.move_forward(2, 10)
+
+        self.set_draw(False)
+        self.rotate_in_place(math.pi)
+        self.move_forward(0.5)
+        self.rotate_in_place(math.pi / 2)
+        self.move_forward(6.5)
+        self.rotate_in_place(-math.pi / 2)
+
         self.draw_y()
 
+        self.set_draw(False)
 
 if __name__ == "__main__":
     # Clear
