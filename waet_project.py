@@ -218,7 +218,7 @@ class Turtle:
             else:
                 speed = max_speed * (2 - 2 * current_time / total_time)
 
-            # Calculating angular speed basing on linear spped and given radius
+            # Calculating angular speed basing on linear speed and given radius
             angular_speed = -speed / radius if direction == 'right' else speed / radius
 
             # Set linear and angular speed
