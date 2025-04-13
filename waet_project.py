@@ -184,6 +184,9 @@ class Turtle:
         # Stopping the turtle
         self.turtle_api.setVel('turtle1', Twist())
 
+        # Print in terminal total distance
+        print(f'Moving forward completed. Targer distance: {distance} meters')
+
     def move_arc(self, radius, angle, direction, max_speed=10):
         """
         Moves the turtle along an arc with the given radius and angle.
@@ -231,6 +234,9 @@ class Turtle:
         # Stopping the turtle
         self.turtle_api.setVel('turtle1', Twist())
 
+        # Print in terminal target arc length, radius and angle
+        print(f'Moving on arc completed. Target arc length: {arc_length} meters, radius: {radius}, angle: {angle}')
+
     def draw_0(self):
         """
         Make turtle draw '0' digit
@@ -261,15 +267,18 @@ class Turtle:
         """
         Make turtle draw 'y' letter
         """
+        rospy.sleep(1)
         self.set_draw(True)
+        self.move_forward(2)
         self.move_arc(3.5, math.pi, 'left')
-        self.move_forward(6.5)
         self.set_draw(False)
+        self.move_forward(2)
         self.rotate_in_place(math.pi)
-        self.move_forward(2)
         self.set_draw(True)
-        self.move_arc(3.5, math.pi, 'right')
-        self.move_forward(2)
+        self.move_forward(6.5)
+        self.move_arc(3.5, 1.6, 'right')
+        self.move_arc(1.5, 2.8, 'right')
+        self.move_forward(5)
 
     def draw_0Ty(self):
         """
@@ -288,13 +297,12 @@ class Turtle:
 
         self.draw_T()
 
-        # Move the turtle to the place where letter 'y' should be drawn
         self.set_draw(False)
-        self.rotate_in_place(math.pi)
-        self.move_forward(1)
-        self.rotate_in_place(math.pi / 2)
+        self.move_forward(9)
+        self.rotate_in_place(-math.pi / 2)
         self.move_forward(6.5)
         self.rotate_in_place(-math.pi / 2)
+        self.move_forward(3)
 
         self.draw_y()
 
