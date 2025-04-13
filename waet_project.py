@@ -297,6 +297,7 @@ class Turtle:
 
         self.draw_T()
 
+        # Move the turtle to the place where letter 'y' should be drawn
         self.set_draw(False)
         self.move_forward(9)
         self.rotate_in_place(-math.pi / 2)
