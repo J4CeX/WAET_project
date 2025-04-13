@@ -19,3 +19,8 @@ by multiplying the above quotient by 2, we are in able to catch the moment of ha
 > Braking the turtle is defined by the formula:
 speed = maximum speed * (2 - 2 * current time / time calculated to travel the entire distance)
 When we reach half the time given to travel, we can start braking. By subtracting the previously described quotient multiplied by 2 from 2, it is possible to brake the turtle. we subtract from 2 because we have divided the road into two halves: the half in which the turtle accelerates and the one in which it brakes. when the current time is equal to the set time then the quotient will be equal to 1, multiplied by 2 equals 2, so when we subtract 2 from 2 then we will get 0 so the speed will be equal to 0
+
+> ### Angular Velocity
+> From the formula for angular velocity: linear velocity = angular velocity * radius, we can derive the formula for angular velocity: angular velocity = linear velocity / radius. Thanks to this transformation of the formula, it is possible to perform the move_arc method
+>
+>Additionally, using the formula: angular velocity = angle / time, it is possible to rotate the turtle in place by performing the rotate_in_place method
