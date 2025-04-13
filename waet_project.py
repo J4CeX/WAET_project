@@ -242,7 +242,6 @@ class Turtle:
         Make turtle draw '0' digit
         """
         self.set_draw(True)
-        self.rotate_in_place(-math.pi / 2)
         self.move_forward(3, 10)
         self.move_arc(3.5, math.pi, 'right')
         self.move_forward(3, 10)
@@ -285,6 +284,9 @@ class Turtle:
         Sequences of moves and operations for turtle
         to make its draw '0Ty' sequences of signs
         """
+        # Move the turtle to the place where digit '0' should be drawn
+        self.rotate_in_place(-math.pi / 2)
+
         self.draw_0()
 
         # Move the turtle to the place where letter 'T' should be drawn
